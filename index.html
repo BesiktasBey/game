@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#a855f7">
+  <meta name="description" content="Memorama Kids - Eşleşen kart çiftlerini bularak hafızanızı test edin!">
+  
+  <title>Memorama Kids - Hafıza Oyunu</title>
+  
+  <!-- PWA için Manifest ve İkon -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+  
+  <!-- iOS için ek meta etiketleri -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Memorama Kids">
+  
+  <!-- Stil dosyası -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      background-color: #a855f7;
+      touch-action: manipulation;
+    }
+    
+    #root {
+      height: 100%;
+      width: 100%;
+    }
+    
+    /* Yükleme göstergesi */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      color: white;
+      font-size: 1.5rem;
+      text-align: center;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 1rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Uygulama yükleme uyarısı */
+    .install-prompt {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: none;
+      z-index: 1000;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    .install-prompt.show {
+      display: block;
+      animation: fadeIn 0.5s;
+    }
+    
+    .install-prompt button {
+      background-color: #a855f7;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-top: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Memorama Kids yükleniyor...</p>
+    </div>
+  </div>
+  
+  <div id="installPrompt" class="install-prompt">
+    <p>Memorama Kids'i ana ekranınıza ekleyebilirsiniz!</p>
+    <button id="installBtn">Yükle</button>
+  </div>
+  
+  <!-- PWA Kurulum Scripti -->
+  <script>
+    // Service Worker Kaydı
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker başarıyla kaydedildi:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Service Worker kaydı başarısız oldu:', error);
+          });
+      });
+    }
+    
+    // PWA Yükleme Uyarısı
+    let deferredPrompt;
+    const installPrompt = document.getElementById('installPrompt');
+    const installBtn = document.getElementById('installBtn');
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Chrome 67+ yükleme uyarısını önler
+      e.preventDefault();
+      // Uyarıyı daha sonra kullanmak için sakla
+      deferredPrompt = e;
+      // Kullanıcıya yükleme uyarısını göster
+      setTimeout(() => {
+        installPrompt.classList.add('show');
+      }, 3000);
+    });
+    
+    installBtn.addEventListener('click', (e) => {
+      // Yükleme uyarısını gizle
+      installPrompt.classList.remove('show');
+      // Yükleme uyarısını göster
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        // Kullanıcının seçimine bak
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('Kullanıcı uygulamayı yükledi');
+          } else {
+            console.log('Kullanıcı kurulumu reddetti');
+          }
+          deferredPrompt = null;
+        });
+      }
+    });
+    
+    // iOS özel yükleme talimatları
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS && !window.navigator.standalone) {
+      const installText = document.querySelector('.install-prompt p');
+      installText.innerHTML = 'iOS\'de yüklemek için: <br>Paylaş butonuna tıklayın → "Ana Ekrana Ekle"i seçin';
+    }
+  </script>
+
+  <!-- React ve React DOM CDN bağlantıları -->
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+  
+  <!-- Oyun kodu -->
+  <script type="text/babel" src="memory-game.jsx"></script>
+</body>
+</html>
